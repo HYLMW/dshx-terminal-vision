@@ -21,13 +21,13 @@ npm install -g dshx-terminal
 dshx --version
 ```
 
-也可以从 [GitHub Release](https://github.com/Maydaytyh/dshx-terminal/releases/tag/v0.1.3) 下载、校验并安装：
+也可以从 [GitHub Release](https://github.com/Maydaytyh/dshx-terminal/releases/latest) 下载、校验并安装：
 
 ```bash
-curl -LO https://github.com/Maydaytyh/dshx-terminal/releases/download/v0.1.3/dshx-terminal-0.1.3.tgz
-curl -LO https://github.com/Maydaytyh/dshx-terminal/releases/download/v0.1.3/dshx-terminal-0.1.3.tgz.sha256
-shasum -a 256 -c dshx-terminal-0.1.3.tgz.sha256
-npm install -g ./dshx-terminal-0.1.3.tgz
+curl -LO https://github.com/Maydaytyh/dshx-terminal/releases/download/v0.2.0/dshx-terminal-0.2.0.tgz
+curl -LO https://github.com/Maydaytyh/dshx-terminal/releases/download/v0.2.0/dshx-terminal-0.2.0.tgz.sha256
+shasum -a 256 -c dshx-terminal-0.2.0.tgz.sha256
+npm install -g ./dshx-terminal-0.2.0.tgz
 dshx --version
 ```
 
@@ -93,6 +93,35 @@ dshx --continue
 ```
 
 交互中输入 `/help` 可查看 `/permission`、`/compact`、`/plan`、`/goal` 等 Harness 命令。按 `Ctrl-C` 可取消正在运行的任务；空闲时按 `Ctrl-C` 退出。
+
+### 模型与状态
+
+`dshx` 使用与 Harness 网页端相同的模型目录和会话统计投影。每轮完成后会显示当前模型、轮次、模型与工具耗时、TTFT、生成速度、Token 用量、缓存命中率和上下文占用；统计会随会话一起持久化，不受历史分页或上下文压缩影响。
+
+```text
+deepseek-official/DeepSeek-V4-Flash  |  2 轮 · 4 步  |  模型 18.2s · 工具 1.1s  |  缓存命中 82%  |  输入 18.4K · 输出 1.2K  |  上下文 12%
+```
+
+交互式选择模型与推理强度：
+
+```text
+/model
+```
+
+也可以直接指定路由：
+
+```text
+/model deepseek-official/deepseek-v4-pro high
+```
+
+查看完整状态、Token 与 Prompt Cache 明细：
+
+```text
+/status
+/usage
+```
+
+其中输入 Token 与网页端口径一致，由未缓存输入、缓存读取和缓存写入三个互不重叠的部分组成；缓存命中率为缓存读取占全部输入的比例。上下文占用优先使用 Harness 对下一次请求的投影值，因此执行 `/compact` 后会立即更新。
 
 默认权限模式是 `workspace-write`：Agent 可以读取文件，并在当前工作目录及受控临时目录写入；其他超出工作区的写操作会在终端里征求许可。
 

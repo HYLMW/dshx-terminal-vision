@@ -1,6 +1,6 @@
 {
   "name": "dshx-terminal",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "A native interactive terminal frontend for DeepSeek Harness",
   "author": "Yuhang Tian",
   "type": "module",
@@ -48,6 +48,7 @@
     "@deepseek-ai/dsh-code-runtime-worker-thread": "0.1.0-rc.6",
     "@deepseek-ai/dsh-llm": "0.1.0-rc.6",
     "@deepseek-ai/dsh-session": "0.1.0-rc.6",
+    "@deepseek-ai/dsh-session-stats": "0.1.0-rc.6",
     "@deepseek-ai/dsh-tool-ask-user": "0.1.0-rc.6"
   },
   "dsh": {

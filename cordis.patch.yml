@@ -19,5 +19,9 @@
     - id: tool-ask-user
       name: '@deepseek-ai/dsh-tool-ask-user'
 
+    # 与网页端使用同一个全会话统计投影，供终端状态栏读取。
+    - id: session-stats
+      name: '@deepseek-ai/dsh-session-stats'
+
     - id: dshx-terminal
       name: 'dshx-terminal/runner'
