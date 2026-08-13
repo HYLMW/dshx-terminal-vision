@@ -1,5 +1,8 @@
 # dshx
 
+[![npm version](https://img.shields.io/npm/v/dshx-terminal.svg)](https://www.npmjs.com/package/dshx-terminal)
+[![GitHub release](https://img.shields.io/github/v/release/Maydaytyh/dshx-terminal)](https://github.com/Maydaytyh/dshx-terminal/releases/latest)
+
 `dshx` 是 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的原生交互式终端前端。它直接使用 Harness 的 Agent、工具、沙箱、权限确认、会话持久化和用户追问服务，不需要打开浏览器。
 
 > [!IMPORTANT]
@@ -11,7 +14,14 @@
 
 需要 Node.js 22.19.x 或 Node.js 24+，并确保 `corepack` 命令可用。`dshx` 会通过 Corepack 固定使用 pnpm 11.7.0 初始化自己的 Harness profile。
 
-从 [GitHub Release](https://github.com/Maydaytyh/dshx-terminal/releases/tag/v0.1.3) 下载并安装：
+通过 npm 安装（推荐）：
+
+```bash
+npm install -g dshx-terminal
+dshx --version
+```
+
+也可以从 [GitHub Release](https://github.com/Maydaytyh/dshx-terminal/releases/tag/v0.1.3) 下载、校验并安装：
 
 ```bash
 curl -LO https://github.com/Maydaytyh/dshx-terminal/releases/download/v0.1.3/dshx-terminal-0.1.3.tgz
