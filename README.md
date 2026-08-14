@@ -24,10 +24,10 @@ dshx --version
 也可以从 [GitHub Release](https://github.com/Maydaytyh/dshx-terminal/releases/latest) 下载、校验并安装：
 
 ```bash
-curl -LO https://github.com/Maydaytyh/dshx-terminal/releases/download/v0.4.0/dshx-terminal-0.4.0.tgz
-curl -LO https://github.com/Maydaytyh/dshx-terminal/releases/download/v0.4.0/dshx-terminal-0.4.0.tgz.sha256
-shasum -a 256 -c dshx-terminal-0.4.0.tgz.sha256
-npm install -g ./dshx-terminal-0.4.0.tgz
+curl -LO https://github.com/Maydaytyh/dshx-terminal/releases/download/v0.4.1/dshx-terminal-0.4.1.tgz
+curl -LO https://github.com/Maydaytyh/dshx-terminal/releases/download/v0.4.1/dshx-terminal-0.4.1.tgz.sha256
+shasum -a 256 -c dshx-terminal-0.4.1.tgz.sha256
+npm install -g ./dshx-terminal-0.4.1.tgz
 dshx --version
 ```
 

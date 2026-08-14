@@ -1,6 +1,6 @@
 {
   "name": "dshx-terminal",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "A native interactive terminal frontend for DeepSeek Harness",
   "author": "Yuhang Tian",
   "type": "module",

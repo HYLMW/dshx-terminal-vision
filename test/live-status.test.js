@@ -265,7 +265,8 @@ describe('LiveStatusBar', () => {
 
     bar.begin({ provider: 'deepseek', model: 'chat' })
     assert.equal(timer.unrefCalled, true)
-    assert.match(output.text(), /\u001b7\n\r\u001b\[2K● deepseek\/chat · 等待模型 0s/)
+    assert.match(output.text(), /\n\r\u001b\[2K● deepseek\/chat · 等待模型 0s.*\u001b\[1A\u001b\[1G/u)
+    assert.doesNotMatch(output.text(), /\u001b[78]/u)
 
     bar.observe({
       type: 'assistant/chunk',
@@ -274,12 +275,13 @@ describe('LiveStatusBar', () => {
     })
     now = 2_000
     tick()
-    assert.match(output.text(), /\r\u001b\[2K\u001b8\u001b7\n\r\u001b\[2K● deepseek\/chat · 生成中 1s/)
+    assert.match(output.text(), /\u001b\[1B\r\u001b\[2K\u001b\[1A\u001b\[1G\n\r\u001b\[2K● deepseek\/chat · 生成中 1s/u)
 
     const chunksBeforeOutput = output.chunks.length
     bar.beforeOutput()
-    bar.afterOutput()
+    bar.afterOutput('回答')
     assert.equal(output.chunks.length, chunksBeforeOutput + 2)
+    assert.match(output.text(), /\u001b\[5G$/u)
 
     bar.pause()
     const pausedLength = output.text().length
