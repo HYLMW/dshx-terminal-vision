@@ -1,8 +1,12 @@
 import assert from 'node:assert/strict'
+import { PassThrough } from 'node:stream'
 import { describe, test } from 'node:test'
 
 import {
+  BracketedPasteInput,
+  decodePastedNewlines,
   EventRenderer,
+  PASTED_NEWLINE,
   parseQuestionAnswer,
   summarizeToolArguments,
   summarizeTurn,
@@ -34,6 +38,43 @@ function assistantMessage({ seq = 1, turn = 1, step = 1, content }) {
     },
   }
 }
+
+describe('BracketedPasteInput', () => {
+  test('keeps pasted newlines inside one readline submission across split markers and UTF-8 chunks', async () => {
+    const input = new PassThrough()
+    input.isTTY = true
+    input.setRawMode = () => {}
+    const decoded = new BracketedPasteInput(input)
+    const chunks = []
+    decoded.on('data', chunk => chunks.push(String(chunk)))
+
+    input.write(Buffer.from('\u001b[20'))
+    input.write(Buffer.from(`0~第一行\r\n第二行\n第三行\u001b[20`))
+    input.end(Buffer.from('1~\r'))
+    await new Promise((resolve, reject) => {
+      decoded.on('end', resolve)
+      decoded.on('error', reject)
+    })
+
+    const wire = chunks.join('')
+    assert.equal(wire, `第一行${PASTED_NEWLINE}第二行${PASTED_NEWLINE}第三行\r`)
+    assert.equal(decodePastedNewlines(wire.slice(0, -1)), '第一行\n第二行\n第三行')
+  })
+
+  test('passes ordinary Enter through unchanged', async () => {
+    const input = new PassThrough()
+    const decoded = new BracketedPasteInput(input)
+    const chunks = []
+    decoded.on('data', chunk => chunks.push(String(chunk)))
+    input.end('普通输入\r')
+    await new Promise((resolve, reject) => {
+      decoded.on('end', resolve)
+      decoded.on('error', reject)
+    })
+
+    assert.equal(chunks.join(''), '普通输入\r')
+  })
+})
 
 describe('summarizeToolArguments', () => {
   test('prefers useful known fields and compacts whitespace', () => {

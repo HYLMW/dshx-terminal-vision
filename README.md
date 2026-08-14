@@ -47,17 +47,17 @@ dshx --version
 也可以从 [GitHub Release](https://github.com/Maydaytyh/dshx-terminal/releases/latest) 下载、校验并安装：
 
 ```bash
-curl -LO https://github.com/Maydaytyh/dshx-terminal/releases/download/v0.4.1/dshx-terminal-0.4.1.tgz
-curl -LO https://github.com/Maydaytyh/dshx-terminal/releases/download/v0.4.1/dshx-terminal-0.4.1.tgz.sha256
-shasum -a 256 -c dshx-terminal-0.4.1.tgz.sha256
-npm install -g ./dshx-terminal-0.4.1.tgz
+curl -LO https://github.com/Maydaytyh/dshx-terminal/releases/download/v0.4.2/dshx-terminal-0.4.2.tgz
+curl -LO https://github.com/Maydaytyh/dshx-terminal/releases/download/v0.4.2/dshx-terminal-0.4.2.tgz.sha256
+shasum -a 256 -c dshx-terminal-0.4.2.tgz.sha256
+npm install -g ./dshx-terminal-0.4.2.tgz
 dshx --version
 ```
 
 上面的校验命令适用于 macOS；Linux 通常使用：
 
 ```bash
-sha256sum -c dshx-terminal-0.4.1.tgz.sha256
+sha256sum -c dshx-terminal-0.4.2.tgz.sha256
 ```
 
 需要通过本机 7890 代理下载安装依赖时，先设置：
@@ -125,6 +125,8 @@ dshx --continue
 ```
 
 交互中输入 `/help` 可查看 `/permission`、`/compact`、`/plan`、`/goal` 等 Harness 命令。按 `Ctrl-C` 可取消正在运行的任务；空闲时按 `Ctrl-C` 退出。
+
+可以直接粘贴多行 prompt。粘贴内容中的换行会暂时显示为 `␤`，不会提前提交；检查内容后再按一次 Enter，`dshx` 会将它作为一个完整的多行 prompt 发送。
 
 ### 模型与状态
 
