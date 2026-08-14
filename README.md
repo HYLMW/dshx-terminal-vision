@@ -24,10 +24,10 @@ dshx --version
 也可以从 [GitHub Release](https://github.com/Maydaytyh/dshx-terminal/releases/latest) 下载、校验并安装：
 
 ```bash
-curl -LO https://github.com/Maydaytyh/dshx-terminal/releases/download/v0.3.0/dshx-terminal-0.3.0.tgz
-curl -LO https://github.com/Maydaytyh/dshx-terminal/releases/download/v0.3.0/dshx-terminal-0.3.0.tgz.sha256
-shasum -a 256 -c dshx-terminal-0.3.0.tgz.sha256
-npm install -g ./dshx-terminal-0.3.0.tgz
+curl -LO https://github.com/Maydaytyh/dshx-terminal/releases/download/v0.4.0/dshx-terminal-0.4.0.tgz
+curl -LO https://github.com/Maydaytyh/dshx-terminal/releases/download/v0.4.0/dshx-terminal-0.4.0.tgz.sha256
+shasum -a 256 -c dshx-terminal-0.4.0.tgz.sha256
+npm install -g ./dshx-terminal-0.4.0.tgz
 dshx --version
 ```
 
@@ -89,6 +89,7 @@ dshx --continue
 -p, --print                     一次性运行
 --permission-mode <mode>        read-only | workspace-write | danger-full-access
 --tools <mode>                  native | code | both
+--endpoint <name>               切换并保存当前命名端点
 --dangerously-skip-permissions  完全访问且不再询问（谨慎使用）
 ```
 
@@ -130,6 +131,52 @@ deepseek-official/DeepSeek-V4-Flash  |  2 轮 · 4 步  |  模型 18.2s · 工�
 ```
 
 其中输入 Token 与网页端口径一致，由未缓存输入、缓存读取和缓存写入三个互不重叠的部分组成；缓存命中率为缓存读取占全部输入的比例。上下文占用优先使用 Harness 对下一次请求的投影值，因此执行 `/compact` 后会立即更新。
+
+### 多个 API 端点
+
+可以在 Harness 的 `~/.dsh/settings.yaml` 中保存多个命名端点。`activeEndpoint` 是默认使用的端点；每个端点只保存 Base URL 和凭据引用，不保存 API Key 明文：
+
+```yaml
+dshx-terminal:
+  activeEndpoint: official
+  endpoints:
+    official:
+      description: DeepSeek 官方 API
+      baseURL: https://api.deepseek.com
+      apiKeyEnv: DEEPSEEK_API_KEY
+    proxy:
+      description: OpenAI 兼容代理
+      baseURL: https://proxy.example.com/v1
+      apiKeyEnv: PROXY_API_KEY
+```
+
+对应密钥继续放在 `~/.dsh/.credentials.yaml`：
+
+```yaml
+DEEPSEEK_API_KEY: "sk-official"
+PROXY_API_KEY: "sk-proxy"
+```
+
+保护凭据文件：
+
+```bash
+chmod 600 ~/.dsh/.credentials.yaml
+```
+
+运行中交互选择端点，或者直接按名称切换：
+
+```text
+/endpoint
+/endpoint proxy
+```
+
+也可以在启动时切换；该选择会写回 `activeEndpoint`，后续启动继续使用：
+
+```bash
+dshx --endpoint proxy
+```
+
+切换通过 Harness 设置服务热更新，下一次模型请求立即使用新的 `baseURL` 和 `apiKeyEnv`。运行中直接编辑当前端点定义也会自动同步。Base URL 会拼接 `/chat/completions`，因此代理服务使用 OpenAI 风格路径时通常应配置到 `/v1`；端点需要兼容 DeepSeek 的流式 Chat Completions 请求和响应。
 
 默认权限模式是 `workspace-write`：Agent 可以读取文件，并在当前工作目录及受控临时目录写入；其他超出工作区的写操作会在终端里征求许可。
 

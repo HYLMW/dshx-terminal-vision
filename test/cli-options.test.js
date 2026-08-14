@@ -19,6 +19,7 @@ describe('parseCli', () => {
       printMode: false,
       model: undefined,
       provider: undefined,
+      endpoint: undefined,
       permissionMode: undefined,
       tools: undefined,
       showReasoning: false,
@@ -39,6 +40,8 @@ describe('parseCli', () => {
       'deepseek-chat',
       '--provider',
       'deepseek',
+      '--endpoint',
+      'proxy',
       '--read-only',
       '--tools',
       'both',
@@ -55,6 +58,7 @@ describe('parseCli', () => {
       printMode: true,
       model: 'deepseek-chat',
       provider: 'deepseek',
+      endpoint: 'proxy',
       permissionMode: 'read-only',
       tools: 'both',
       showReasoning: true,
@@ -146,6 +150,8 @@ describe('applyCliEnvironment', () => {
       'model-id',
       '--provider',
       'provider-id',
+      '--endpoint',
+      'endpoint-id',
       '--print',
       'say hello',
     ])
@@ -162,6 +168,7 @@ describe('applyCliEnvironment', () => {
       DSHX_CONTINUE: '1',
       DSHX_MODEL: 'model-id',
       DSHX_PROVIDER: 'provider-id',
+      DSHX_ENDPOINT: 'endpoint-id',
       UNRELATED: 'preserved',
     })
   })
@@ -175,6 +182,7 @@ describe('applyCliEnvironment', () => {
       DSHX_RESUME_SESSION: 'stale-session',
       DSHX_MODEL: 'stale-model',
       DSHX_PROVIDER: 'stale-provider',
+      DSHX_ENDPOINT: 'stale-endpoint',
     }
 
     applyCliEnvironment(parseCli([]), env)
