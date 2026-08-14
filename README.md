@@ -24,10 +24,10 @@ dshx --version
 也可以从 [GitHub Release](https://github.com/Maydaytyh/dshx-terminal/releases/latest) 下载、校验并安装：
 
 ```bash
-curl -LO https://github.com/Maydaytyh/dshx-terminal/releases/download/v0.2.0/dshx-terminal-0.2.0.tgz
-curl -LO https://github.com/Maydaytyh/dshx-terminal/releases/download/v0.2.0/dshx-terminal-0.2.0.tgz.sha256
-shasum -a 256 -c dshx-terminal-0.2.0.tgz.sha256
-npm install -g ./dshx-terminal-0.2.0.tgz
+curl -LO https://github.com/Maydaytyh/dshx-terminal/releases/download/v0.3.0/dshx-terminal-0.3.0.tgz
+curl -LO https://github.com/Maydaytyh/dshx-terminal/releases/download/v0.3.0/dshx-terminal-0.3.0.tgz.sha256
+shasum -a 256 -c dshx-terminal-0.3.0.tgz.sha256
+npm install -g ./dshx-terminal-0.3.0.tgz
 dshx --version
 ```
 
@@ -96,11 +96,19 @@ dshx --continue
 
 ### 模型与状态
 
-`dshx` 使用与 Harness 网页端相同的模型目录和会话统计投影。每轮完成后会显示当前模型、轮次、模型与工具耗时、TTFT、生成速度、Token 用量、缓存命中率和上下文占用；统计会随会话一起持久化，不受历史分页或上下文压缩影响。
+`dshx` 使用与 Harness 网页端相同的模型目录和会话统计投影。任务运行时，终端底部会显示一条约每秒更新一次的实时状态栏，包括当前模型、运行阶段或工具、耗时、TTFT、生成速度、输出 Token、Prompt Cache 命中率和上下文占用：
+
+```text
+● deepseek-official/DeepSeek-V4-Flash · 生成中 8.4s · TTFT 0.9s · ~38.6 tok/s · 输出 ~326 · 缓存 82% · 上下文 12%
+```
+
+流式阶段的输出 Token 和生成速度带 `~`，表示根据当前字符流与本地计时估算；提供方返回 usage 后会切换为精确 Token。缓存信息只能在模型提供 usage 后计算，在此之前显示 `—`。每轮完成后则使用 Harness 的精确累计投影，显示当前模型、轮次、模型与工具耗时、TTFT、生成速度、Token 用量、缓存命中率和上下文占用；统计会随会话一起持久化，不受历史分页或上下文压缩影响。
 
 ```text
 deepseek-official/DeepSeek-V4-Flash  |  2 轮 · 4 步  |  模型 18.2s · 工具 1.1s  |  缓存命中 82%  |  输入 18.4K · 输出 1.2K  |  上下文 12%
 ```
+
+实时状态栏只在交互式 TTY 中启用；`--print`、管道和重定向输出不会包含终端控制字符。
 
 交互式选择模型与推理强度：
 

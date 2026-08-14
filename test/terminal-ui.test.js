@@ -126,6 +126,25 @@ describe('parseQuestionAnswer', () => {
 })
 
 describe('EventRenderer', () => {
+  test('feeds every event to live status and preserves it around rendered output', () => {
+    const output = captureOutput()
+    const calls = []
+    const liveStatus = {
+      observe(event) { calls.push(['observe', event.type]) },
+      beforeOutput() { calls.push(['before']) },
+      afterOutput() { calls.push(['after']) },
+    }
+    const renderer = new EventRenderer({ output: output.stream, color: false, liveStatus })
+
+    renderer.handle({
+      type: 'assistant/chunk',
+      data: { turn: 1, step: 1, chunk: { type: 'text-delta', text: 'hello' } },
+    })
+
+    assert.equal(output.text(), 'hello')
+    assert.deepEqual(calls, [['observe', 'assistant/chunk'], ['before'], ['after']])
+  })
+
   test('streams text deltas and suppresses the matching committed message', () => {
     const output = captureOutput()
     const renderer = new EventRenderer({ output: output.stream, color: false })
