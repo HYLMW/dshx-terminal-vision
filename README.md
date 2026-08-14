@@ -8,11 +8,34 @@
 > [!IMPORTANT]
 > 这是社区维护的非官方项目，与 DeepSeek 没有隶属或背书关系。
 
-目前已在 macOS Apple Silicon 上验证。
+## 平台支持
+
+`dshx` 不是 macOS 专用程序，CLI 本身使用跨平台 Node.js API，发布包也没有设置操作系统限制。
+
+| 平台 | 状态 | 说明 |
+| --- | --- | --- |
+| macOS Apple Silicon | 已验证 | 当前主要开发与回归环境 |
+| Linux x64 / ARM64 | 支持 | 推荐 Ubuntu、Debian 等 glibc 发行版；依赖包含对应 Linux 原生组件，正式 Linux CI 尚在补充 |
+| Alpine / musl | 未完整验证 | 部分原生依赖可能需要额外构建工具 |
+| Windows | 实验性 | 启动逻辑已做路径兼容，但尚未完整回归 |
 
 ## 安装
 
 需要 Node.js 22.19.x 或 Node.js 24+，并确保 `corepack` 命令可用。`dshx` 会通过 Corepack 固定使用 pnpm 11.7.0 初始化自己的 Harness profile。
+
+macOS 和 Linux 使用相同的 npm 安装方式。先检查运行环境：
+
+```bash
+node --version
+corepack --version
+```
+
+如果系统没有 `corepack`，先安装并启用：
+
+```bash
+npm install -g corepack
+corepack enable
+```
 
 通过 npm 安装（推荐）：
 
@@ -31,6 +54,12 @@ npm install -g ./dshx-terminal-0.4.1.tgz
 dshx --version
 ```
 
+上面的校验命令适用于 macOS；Linux 通常使用：
+
+```bash
+sha256sum -c dshx-terminal-0.4.1.tgz.sha256
+```
+
 需要通过本机 7890 代理下载安装依赖时，先设置：
 
 ```bash
@@ -38,6 +67,8 @@ export HTTP_PROXY=http://127.0.0.1:7890
 export HTTPS_PROXY=http://127.0.0.1:7890
 export ALL_PROXY=socks5://127.0.0.1:7890
 ```
+
+在远程 Linux 服务器上，`127.0.0.1:7890` 指服务器自身；如果代理运行在另一台机器，需要换成该代理对服务器可访问的地址。
 
 设置 DeepSeek API Key：
 
