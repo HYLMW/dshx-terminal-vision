@@ -62,7 +62,7 @@ function resolveTargets() {
 
 function applyOne(targetPath, label, transforms) {
   if (!targetPath || !existsSync(targetPath)) {
-    console.log(`  ✗ [${label}] module not installed (skipping)`);
+    console.log(`  - [${label}] module not installed (skipping)`);
     return 'missing';
   }
   const bak = targetPath + '.bak';
@@ -74,7 +74,11 @@ function applyOne(targetPath, label, transforms) {
   }
   for (const [find, replace] of transforms.edits) {
     if (!src.includes(find)) {
-      console.log(`  ✗ [${label}] anchor not found: ${find.slice(0, 60)}…`);
+      if (transforms.nativeMarker && src.includes(transforms.nativeMarker)) {
+        console.log(`  · [${label}] skipped — upstream already supports this natively`);
+        return 'native';
+      }
+      console.log(`  ✗ [${label}] anchor not found (upstream code changed?): ${find.slice(0, 60)}…`);
       copyFileSync(bak, targetPath); // restore pristine on partial failure
       return 'failed';
     }
@@ -92,6 +96,7 @@ function applyOne(targetPath, label, transforms) {
 // rc.6 上需要本补丁；rc.8+ 走 native 路径，anchor 自然不命中即跳过。
 const deepseekPatch = {
   marker: 'inputModalities: model.input ?? ["text"]',
+  nativeMarker: 'inputModalities: z.array', // rc.8+ ships this schema natively
   edits: [
     [
       'maxTokens: z.number().step(1).min(1)\n});',
