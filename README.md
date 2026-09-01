@@ -1,12 +1,57 @@
-# dshx
-
-[![npm version](https://img.shields.io/npm/v/dshx-terminal.svg)](https://www.npmjs.com/package/dshx-terminal)
-[![GitHub release](https://img.shields.io/github/v/release/Maydaytyh/dshx-terminal)](https://github.com/Maydaytyh/dshx-terminal/releases/latest)
+# dshx (vision fork)
 
 `dshx` 是 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的原生交互式终端前端。它直接使用 Harness 的 Agent、工具、沙箱、权限确认、会话持久化和用户追问服务，不需要打开浏览器。
 
 > [!IMPORTANT]
 > 这是社区维护的非官方项目，与 DeepSeek 没有隶属或背书关系。
+
+## 本分支：多模态 / 视觉模型支持
+
+上游 `dsh-llm-deepseek` 适配器把全部模型硬编码为 `inputModalities: ["text"]`，导致 Harness 内置的 `read_image` 工具对所有路由一律拒绝。本分支通过两个源码级补丁打通视觉模型的接入链路：
+
+1. **按模型声明多模态输入**（`dsh-llm-deepseek`）
+   - 目录（catalog）schema 新增可选 `input` 字段；
+   - `modelInfo()` / `resolveModel()` 改为 `inputModalities: model.input ?? ["text"]`；
+   - 效果：在 `settings.yaml` 的模型条目上声明 `input: [text, image]` 后，`read_image` 工具门（`assertImageCapableRoute`）对该模型放行。
+2. **自定义网关的 `max_tokens` 字段白名单**（`pi-ai` openai-completions）
+   - pi-ai 按域名白名单在 `max_tokens` / `max_completion_tokens` 之间切换参数名，自托管网关默认走到后者，常见症状是输出被截断到几千 token；
+   - 补丁改为额外读取环境变量 `PI_AI_MAX_TOKENS_DOMAINS`（逗号分隔的域名片段）；
+   - `dshx` 启动时会扫描 `~/.dsh/settings.yaml` 中全部 `baseURL` 的主机名并自动注入该变量（`lib/gateway-env.js`），无需手工维护清单。
+
+补丁由 `scripts/apply-patches.mjs` 在 `npm install` 后的 postinstall 钩子幂等地打入 `node_modules`，并生成 `.bak` 备份：
+
+```bash
+npm run patch:check    # 查看当前补丁状态（2/2 即生效）
+npm run patch:revert   # 回滚到官方实现
+```
+
+### 接入视觉模型的最小配置
+
+在 `~/.dsh/settings.yaml` 中为目标模型声明 `input`：
+
+```yaml
+llm-pi-ai:                       # 走 dsh-llm-pi-ai 适配器的网关
+  providers:
+    my-gateway:
+      apiKeyEnv: MY_GATEWAY_KEY
+      api: openai-completions    # 或 anthropic-messages
+      baseURL: https://gateway.example.com/v1
+      models:
+        - id: some-vision-model
+          input: [text, image]   # ★ 声明后 read_image 可用
+```
+
+声明后模型选择器中出现该模型，agent 调用 `read_image <path>` 即可读取 PNG/JPEG/WebP/GIF。注意：
+
+- 视觉声明必须与网关侧能力一致——部分模型在网关侧只注册了纯文本入口，即便声明了 `image` 也会被上游拒绝；
+- `dsh-llm-deepseek` 适配器的请求序列化层对图片仍有 `assertTextOnly` 硬门禁；DeepSeek 原生协议路线的多模态模型请改走 `dsh-llm-pi-ai` 适配器（openai-completions 或 anthropic-messages 均可正确序列化图片）。
+
+---
+
+# dshx
+
+[![npm version](https://img.shields.io/npm/v/dshx-terminal.svg)](https://www.npmjs.com/package/dshx-terminal)
+[![GitHub release](https://img.shields.io/github/v/release/Maydaytyh/dshx-terminal)](https://github.com/Maydaytyh/dshx-terminal/releases/latest)
 
 ## 平台支持
 

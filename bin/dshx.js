@@ -2,6 +2,7 @@
 
 import { chdir } from 'node:process'
 import { applyCliEnvironment, CliUsageError, HELP, parseCli } from '../lib/cli-options.js'
+import { applyGatewayEnv } from '../lib/gateway-env.js'
 import { ensureBundle, launchHarness, PACKAGE_VERSION, resolveDshBin } from '../lib/bootstrap.js'
 
 async function main() {
@@ -24,6 +25,7 @@ async function main() {
   }
 
   applyCliEnvironment(options)
+  applyGatewayEnv()
   const dshBin = resolveDshBin()
   ensureBundle({ dshBin })
   await launchHarness(dshBin)

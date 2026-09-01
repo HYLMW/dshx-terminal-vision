@@ -1,6 +1,6 @@
 {
   "name": "dshx-terminal",
-  "version": "0.4.2",
+  "version": "0.4.3-vision.1",
   "description": "A native interactive terminal frontend for DeepSeek Harness",
   "author": "Yuhang Tian",
   "type": "module",
@@ -14,11 +14,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Maydaytyh/dshx-terminal.git"
+    "url": "git+https://github.com/HYLMW/dshx-terminal-vision.git"
   },
-  "homepage": "https://github.com/Maydaytyh/dshx-terminal#readme",
+  "homepage": "https://github.com/HYLMW/dshx-terminal-vision#readme",
   "bugs": {
-    "url": "https://github.com/Maydaytyh/dshx-terminal/issues"
+    "url": "https://github.com/HYLMW/dshx-terminal-vision/issues"
   },
   "bin": {
     "dshx": "bin/dshx.js"
@@ -29,18 +29,23 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "bin",
+    "lib/gateway-env.js",
+    "LICENSE",
     "lib",
+    "bin",
     "cordis.patch.yml",
     "README.md",
-    "LICENSE"
+    "scripts"
   ],
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
   },
   "scripts": {
     "test": "node --test",
-    "pack:local": "npm pack --pack-destination dist"
+    "pack:local": "npm pack --pack-destination dist",
+    "postinstall": "node scripts/apply-patches.mjs",
+    "patch:check": "node scripts/apply-patches.mjs --check",
+    "patch:revert": "node scripts/apply-patches.mjs --revert"
   },
   "dependencies": {
     "@deepseek-ai/dsh": "0.1.0-rc.6",
