@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { spawnSync } from 'node:child_process'
 import { chdir } from 'node:process'
 import { applyCliEnvironment, CliUsageError, HELP, parseCli } from '../lib/cli-options.js'
 import { applyGatewayEnv } from '../lib/gateway-env.js'
@@ -26,6 +27,8 @@ async function main() {
 
   applyCliEnvironment(options)
   applyGatewayEnv()
+  const patcherPath = new URL('../scripts/apply-patches.mjs', import.meta.url).pathname
+  spawnSync(process.execPath, [patcherPath], { stdio: 'inherit' })
   const dshBin = resolveDshBin()
   ensureBundle({ dshBin })
   await launchHarness(dshBin)

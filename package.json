@@ -43,7 +43,6 @@
   "scripts": {
     "test": "node --test",
     "pack:local": "npm pack --pack-destination dist",
-    "postinstall": "node scripts/apply-patches.mjs",
     "patch:check": "node scripts/apply-patches.mjs --check",
     "patch:revert": "node scripts/apply-patches.mjs --revert"
   },
