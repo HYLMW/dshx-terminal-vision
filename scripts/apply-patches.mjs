@@ -16,6 +16,8 @@
  *   B. pi-ai openai-completions — extend the `max_tokens` field-name
  *      whitelist with hosts from PI_AI_MAX_TOKENS_DOMAINS (auto-populated
  *      from each ~/.dsh/settings.yaml baseURL by lib/gateway-env.js).
+ *   C. dsh-web-search-deepseek — register an AnySearch REST (`/v1/search`)
+ *      web-search provider next to the Anthropic-Messages DeepSeek provider.
  */
 
 import { readFileSync, writeFileSync, copyFileSync, existsSync, readdirSync } from 'node:fs';
@@ -48,14 +50,19 @@ function resolveTargets() {
       join(base, '@deepseek-ai/dsh-llm-deepseek/lib/index.js'),
     ].find(existsSync);
     const piai = join(base, '@earendil-works/pi-ai/dist/api/openai-completions.js');
-    if (deepseek || existsSync(piai)) {
+    const webSearch = [
+      join(base, '@deepseek-ai/dsh-base/node_modules/@deepseek-ai/dsh-web-search-deepseek/lib/index.js'),
+      join(base, '@deepseek-ai/dsh-web-search-deepseek/lib/index.js'),
+    ].find(existsSync);
+    if (deepseek || existsSync(piai) || webSearch) {
       return {
         deepseekTarget: deepseek ?? null,
         piAiTarget: existsSync(piai) ? piai : null,
+        webSearchTarget: webSearch ?? null,
       };
     }
   }
-  return { deepseekTarget: null, piAiTarget: null };
+  return { deepseekTarget: null, piAiTarget: null, webSearchTarget: null };
 }
 
 // ─── patch helpers ────────────────────────────────────────────────────────────
@@ -137,6 +144,119 @@ const piaiNonStandardPatch = {
   ],
 };
 
+// C. dsh-web-search-deepseek — register an additional AnySearch REST search
+//    provider (`POST {baseURL}/search`) next to the Anthropic-Messages
+//    DeepSeek provider, so the built-in web_search tool can run against any
+//    AnySearch-compatible gateway without a local protocol bridge. The
+//    provider is only `available()` when the section's baseURL host matches
+//    `anysearch`, which keeps DeepSeek (and bridged) endpoints unambiguous.
+const anysearchPatch = {
+  marker: 'AnySearchRestProvider',
+  edits: [
+    [
+      '//#endregion\n//#region lib/types/index.js',
+      `// AnySearch REST provider — added by dshx vision fork patch C
+function resolveAnySearchOptions(ctx, config) {
+	const options = resolveOptions(ctx, config);
+	return { ...options, baseURL: String(options.baseURL).replace(/\\/+$/u, "") };
+}
+/** Search AnySearch's native REST endpoint: POST {baseURL}/search, Bearer key. */
+var AnySearchRestProvider = class {
+	id = "anysearch";
+	constructor(resolveOptions2) {
+		this.resolveOptions = resolveOptions2;
+	}
+	available() {
+		const options = this.resolveOptions();
+		if (!((options.apiKey?.length ?? 0) > 0 || options.resolveApiKey !== void 0) || !URL.canParse(options.baseURL)) return false;
+		return /anysearch/i.test(new URL(options.baseURL).hostname);
+	}
+	async search(request, signal) {
+		const options = this.resolveOptions();
+		const apiKey = await this.apiKey(options, signal);
+		throwIfSearchAborted(signal);
+		const endpoint = options.baseURL.replace(/\\/$/u, "") + "/search";
+		const body = { query: request.query };
+		options.recordRequest?.({ endpoint, body });
+		throwIfSearchAborted(signal);
+		let response;
+		try {
+			response = await fetch(endpoint, {
+				method: "POST",
+				redirect: "error",
+				headers: {
+					"authorization": "Bearer " + apiKey,
+					"x-api-key": apiKey,
+					"content-type": "application/json",
+					"accept": "application/json",
+					"user-agent": USER_AGENT
+				},
+				body: JSON.stringify(body),
+				...signal !== void 0 ? { signal } : {}
+			});
+		} catch (error) {
+			if (signal?.aborted === true || isAbortError(error)) throw searchAborted(signal, error);
+			throw new WebError("AnySearch search request failed: " + String(error), "WEB_PROVIDER_ERROR", { cause: error });
+		}
+		if (!response.ok) {
+			let message = "AnySearch API error (HTTP " + response.status + ")";
+			try {
+				const parsed = await response.json();
+				const detail = typeof parsed.error === "string" ? parsed.error : parsed.error?.message ?? parsed.message;
+				if (detail !== void 0 && detail.length > 0) message = detail;
+			} catch {}
+			throw new WebError(message, "WEB_PROVIDER_ERROR");
+		}
+		try {
+			const parsed = await response.json();
+			const results = parsed?.data?.results;
+			if (!Array.isArray(results)) throw new Error("no data.results array in AnySearch response");
+			const sources = [];
+			const seen = new Set();
+			for (const item of results) {
+				if (!item || typeof item.url !== "string" || item.url.length === 0 || seen.has(item.url)) continue;
+				seen.add(item.url);
+				const source = { url: item.url };
+				if (item.title != null && item.title.length > 0) source.title = item.title;
+				if (item.snippet != null && item.snippet.length > 0) source.snippet = item.snippet;
+				if (item.page_age != null && item.page_age.length > 0) source.publishedAt = item.page_age;
+				sources.push(source);
+			}
+			return { sources, truncated: false };
+		} catch (error) {
+			if (signal?.aborted === true || isAbortError(error)) throw searchAborted(signal, error);
+			if (error instanceof WebError) throw error;
+			throw new WebError("AnySearch returned an unprocessable response body: " + String(error), "WEB_PROVIDER_ERROR", { cause: error });
+		}
+	}
+	async apiKey(options, signal) {
+		throwIfSearchAborted(signal);
+		if (options.apiKey !== void 0 && options.apiKey.length > 0) return options.apiKey;
+		let resolved;
+		try {
+			resolved = await abortable(options.resolveApiKey?.() ?? Promise.resolve(void 0), signal);
+		} catch (error) {
+			if (signal?.aborted === true || isAbortError(error)) throw searchAborted(signal, error);
+			throw new WebError("AnySearch search credential resolution failed: " + String(error), "WEB_PROVIDER_ERROR", { cause: error });
+		}
+		if (resolved !== void 0 && resolved.length > 0) return resolved;
+		throw new WebError("AnySearch search has no API key for \\"" + (options.apiKeyEnv ?? "ANYSEARCH_API_KEY") + "\\"; store it through the credentials service, export it in the launching environment, or set a literal \\"apiKey\\" in the web-search-deepseek config", "WEB_PROVIDER_CREDENTIAL_MISSING");
+	}
+};
+//#endregion
+//#region lib/types/index.js`,
+    ],
+    [
+      'registerSearchProvider(new DeepSeekSearchProvider(() => resolveOptions(ctx, current())));',
+      'registerSearchProvider(new DeepSeekSearchProvider(() => resolveOptions(ctx, current())));\n\tctx.web.registerSearchProvider(new AnySearchRestProvider(() => resolveAnySearchOptions(ctx, current())));',
+    ],
+    [
+      'DeepSeekSearchProvider, WEB_SEARCH_DEEPSEEK_SETTINGS_NAMESPACE',
+      'DeepSeekSearchProvider, AnySearchRestProvider, WEB_SEARCH_DEEPSEEK_SETTINGS_NAMESPACE',
+    ],
+  ],
+};
+
 // ─── main ─────────────────────────────────────────────────────────────────────
 
 const mode = process.argv[2] ?? '--apply';
@@ -160,13 +280,13 @@ function resolveProfileTargets() {
   return targets;
 }
 
-const { deepseekTarget, piAiTarget } = resolveTargets();
+const { deepseekTarget, piAiTarget, webSearchTarget } = resolveTargets();
 const profileExtras = resolveProfileTargets();
 
 console.log('dshx vision patches —', mode);
 
 if (mode === '--revert') {
-  for (const p of [deepseekTarget, piAiTarget, ...profileExtras]) {
+  for (const p of [deepseekTarget, piAiTarget, webSearchTarget, ...profileExtras]) {
     if (typeof p === 'string' && existsSync(p + '.bak')) {
       copyFileSync(p + '.bak', p);
       console.log(`  reverted ${p.split('/').slice(-3).join('/')}`);
@@ -179,6 +299,7 @@ const PATCHES = [
   [() => deepseekTarget, 'llm-deepseek:model.input', deepseekPatch],
   [() => piAiTarget, 'pi-ai:maxTokens-env-whitelist', piaiMaxTokensPatch],
   [() => piAiTarget, 'pi-ai:custom-gateway-nonstandard', piaiNonStandardPatch],
+  [() => webSearchTarget, 'web-search:anysearch-rest-provider', anysearchPatch],
 ];
 // Profile copies (~/.dsh/profiles/*/node_modules) need the same treatment.
 for (const extra of profileExtras) {

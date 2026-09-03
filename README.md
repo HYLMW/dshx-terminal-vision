@@ -7,7 +7,7 @@
 
 ## 本分支：多模态 / 视觉模型支持
 
-上游 `dsh-llm-deepseek` 适配器把全部模型硬编码为 `inputModalities: ["text"]`，导致 Harness 内置的 `read_image` 工具对所有路由一律拒绝。本分支通过两个源码级补丁打通视觉模型的接入链路：
+上游 `dsh-llm-deepseek` 适配器把全部模型硬编码为 `inputModalities: ["text"]`，导致 Harness 内置的 `read_image` 工具对所有路由一律拒绝。本分支通过源码级补丁补齐视觉与检索链路：
 
 1. **按模型声明多模态输入**（`dsh-llm-deepseek`）
    - 目录（catalog）schema 新增可选 `input` 字段；
@@ -17,13 +17,19 @@
    - pi-ai 按域名白名单在 `max_tokens` / `max_completion_tokens` 之间切换参数名，自托管网关默认走到后者，常见症状是输出被截断到几千 token；
    - 补丁改为额外读取环境变量 `PI_AI_MAX_TOKENS_DOMAINS`（逗号分隔的域名片段）；
    - `dshx` 启动时会扫描 `~/.dsh/settings.yaml` 中全部 `baseURL` 的主机名并自动注入该变量（`lib/gateway-env.js`），无需手工维护清单。
+3. **AnySearch REST web-search provider**（`dsh-web-search-deepseek`）
+   - 内置 `web_search` 工具默认只有 DeepSeek 官方搜索 provider（Anthropic Messages + `web_search_20250305` 原生搜索工具），无法直连纯 REST 搜索网关；
+   - 补丁在同一插件内注册第二个 provider `anysearch`（`POST {baseURL}/search` + Bearer key），无需本地协议桥；
+   - `available()` 以 baseURL 主机名守卫（仅 `anysearch` 域名），与 DeepSeek / 桥接端点互不干扰，不会触发 `WEB_PROVIDER_AMBIGUOUS`。
 
 补丁由 `scripts/apply-patches.mjs` 在 `npm install` 后的 postinstall 钩子幂等地打入 `node_modules`，并生成 `.bak` 备份：
 
 ```bash
-npm run patch:check    # 查看当前补丁状态（2/2 即生效）
+npm run patch:check    # 查看当前补丁状态（A/B/C 均已打上即生效）
 npm run patch:revert   # 回滚到官方实现
 ```
+
+使用说明见 [docs/web-search-anysearch.md](docs/web-search-anysearch.md) 与下方「接入 AnySearch Web Search」。
 
 ### 接入视觉模型的最小配置
 
@@ -45,6 +51,33 @@ llm-pi-ai:                       # 走 dsh-llm-pi-ai 适配器的网关
 
 - 视觉声明必须与网关侧能力一致——部分模型在网关侧只注册了纯文本入口，即便声明了 `image` 也会被上游拒绝；
 - `dsh-llm-deepseek` 适配器的请求序列化层对图片仍有 `assertTextOnly` 硬门禁；DeepSeek 原生协议路线的多模态模型请改走 `dsh-llm-pi-ai` 适配器（openai-completions 或 anthropic-messages 均可正确序列化图片）。
+
+### 接入 AnySearch Web Search（REST）
+
+让内置 `web_search` 工具走 AnySearch（`https://api.anysearch.com/v1/search`）等 REST 搜索网关，三步：
+
+1. 凭据 `~/.dsh/.credentials.yaml`（或启动环境变量）：
+
+   ```yaml
+   ANYSEARCH_API_KEY: "as_sk_<your-key>"
+   ```
+
+2. `~/.dsh/settings.yaml` 的 `web-search-deepseek` 段（复用现有设置卡）：
+
+   ```yaml
+   web-search-deepseek:
+     apiKeyEnv: ANYSEARCH_API_KEY
+     baseURL: https://api.anysearch.com/v1   # REST 根地址，补丁会 POST {baseURL}/search
+     maxUses: 5
+   ```
+
+3. 需要时显式选择 provider（仅当 DeepSeek key 与 AnySearch key **同时**配置时才必须，否则单一可用 provider 自动生效）：
+
+   ```bash
+   export DSH_WEB_SEARCH_PROVIDER=anysearch
+   ```
+
+验证：`npm run patch:check` 中 `web-search:anysearch-rest-provider` 应为 patched；随后任意触发一次 `web_search`，结果应带 `title`/`url`/`snippet` 的结构化来源。完整说明与共存行为见 [docs/web-search-anysearch.md](docs/web-search-anysearch.md)。
 
 ---
 
